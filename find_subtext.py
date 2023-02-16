@@ -91,20 +91,31 @@ def extractCommonPassages(commonNGrams):
 
 
 def main():
-    with io.open("data/1_bigger.txt", encoding="utf-8") as f:
+    with io.open('data/1_smaller.txt', encoding='utf-8') as f:
         txt1 = f.read()
-    with io.open("data/1_smaller.txt", encoding="utf-8") as f:
+    with io.open('data/1_bigger.txt', encoding='utf-8') as f:
         txt2 = f.read()
-    lo = compareTwoTexts(txt1, txt2)
-    # words = extractWords(txt1, alphabet=russianAlphabet)
-    print(lo)
-    # for i in lo:
-    #     print(i)
-    # print(len(getReverseDic(extractNGrams(txt1, alphabet=russianAlphabet))))
-    # ngramd1 = extractNGrams(txt1, alphabet=russianAlphabet)
-    # print(getReverseDic(ngramd1))
-    # ngramd2 = extractNGrams(txt2, alphabet=russianAlphabet)
-    # print((getCommonNGrams(ngramd1, ngramd2)))
+    subtext_bigrams = compareTwoTexts(txt1, txt2)
+
+# =========== Вариант 1 ======================================
+    words = extractWords(txt1, alphabet=russianAlphabet)
+    summary = ''
+    for subtext_bigram in subtext_bigrams:
+        subtext = ''
+        temp = -1
+        # for bigram in subtext_bigram:
+        for k in range(0, len(subtext_bigram), 1):
+            # print(subtext_bigram[k])
+            if temp != subtext_bigram[k][0]:
+                subtext += ''.join(f'{words[subtext_bigram[k][0]]} {words[subtext_bigram[k][0] + 1]} ')
+                temp = subtext_bigram[k][0] + 1
+        summary += f'{subtext}\n============================================\n'
+
+# =========== Вариант 2. Будет чуть позже =====================
+
+# =============================================================
+    with io.open('rezult.txt', mode='w+', encoding='utf-8') as f:
+        f.write(f'{summary}')
 
 
 if __name__ == '__main__':
