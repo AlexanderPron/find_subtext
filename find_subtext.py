@@ -1,4 +1,6 @@
-from orderedset import OrderedSet
+from utils.OrderedSet import OrderedSet
+import io
+from difflib import SequenceMatcher
 
 
 russianAlphabet = {
@@ -89,10 +91,20 @@ def extractCommonPassages(commonNGrams):
 
 
 def main():
-    txt1 = 'абра кадабра'
-    txt2 = 'абра кадабра швабар'
-
-    print(compareTwoTexts(txt1, txt2))
+    with io.open("data/1_bigger.txt", encoding="utf-8") as f:
+        txt1 = f.read()
+    with io.open("data/1_smaller.txt", encoding="utf-8") as f:
+        txt2 = f.read()
+    lo = compareTwoTexts(txt1, txt2)
+    # words = extractWords(txt1, alphabet=russianAlphabet)
+    print(lo)
+    # for i in lo:
+    #     print(i)
+    # print(len(getReverseDic(extractNGrams(txt1, alphabet=russianAlphabet))))
+    # ngramd1 = extractNGrams(txt1, alphabet=russianAlphabet)
+    # print(getReverseDic(ngramd1))
+    # ngramd2 = extractNGrams(txt2, alphabet=russianAlphabet)
+    # print((getCommonNGrams(ngramd1, ngramd2)))
 
 
 if __name__ == '__main__':
