@@ -18,6 +18,12 @@ def compareTwoTexts(txt1, txt2, alphabet=russianAlphabet):
 
 
 def extractNGrams(txt, alphabet):
+    ''' На входе текст и алфавит
+    На выходе словарь: ключ - биграмма(2 слова через пробел), значение - список номеров первых слов биграммы
+    П.С. номер слова - порядковый номер слова в файле txt
+    Например: {'пьеса реанимация': [0, 25], ...} - слово "пьеса" биграммы "пьеса реанимация"
+    в файле txt по счёту первое и 26-ое '''
+
     words = extractWords(txt, alphabet)
     ngrams = []
     for i in range(len(words) - 1):
@@ -90,6 +96,33 @@ def extractCommonPassages(commonNGrams):
     return commonPassages
 
 
+# def bigram_to_wordslist(words: list, bg: tuple) -> list:
+#     """ ВАЖНО: В кортеже биграммы bg первым элементом должен быть порядковый номер слова из текста text"""
+#     wlist = [words[bg[0]], words[bg[0] + 1]]
+#     return wlist
+
+
+def bigramlist_to_wordslist(words: list, bg_list: list) -> list:
+    rezlist = []
+    temp = -1
+    for bg in bg_list:
+        wlist = []
+        k = 0
+        for item in bg:
+            if k == 0:
+                if temp == item[0]:
+                    continue
+                wlist.extend([words[item[0]], words[item[0] + 1]])
+                k += 1
+                temp = item[0]
+            else:
+                wlist.append(words[item[0] + 1])
+                temp = item[0]
+        if wlist:
+            rezlist.append(wlist)
+    return rezlist
+
+
 def main():
     with io.open('data/1_smaller.txt', encoding='utf-8') as f:
         txt1 = f.read()
@@ -98,24 +131,20 @@ def main():
     subtext_bigrams = compareTwoTexts(txt1, txt2)
 
 # =========== Вариант 1 ======================================
+
     words = extractWords(txt1, alphabet=russianAlphabet)
+    parts = bigramlist_to_wordslist(words, subtext_bigrams)
     summary = ''
-    for subtext_bigram in subtext_bigrams:
-        subtext = ''
-        temp = -1
-        # for bigram in subtext_bigram:
-        for k in range(0, len(subtext_bigram), 1):
-            # print(subtext_bigram[k])
-            if temp != subtext_bigram[k][0]:
-                subtext += ''.join(f'{words[subtext_bigram[k][0]]} {words[subtext_bigram[k][0] + 1]} ')
-                temp = subtext_bigram[k][0] + 1
-        summary += f'{subtext}\n============================================\n'
+    for i in parts:
+        summary += f"{' '.join(i)}\n============================================\n"
+    with io.open('rezult.txt', mode='w+', encoding='utf-8') as f:
+        f.write(f'{summary}')
 
 # =========== Вариант 2. Будет чуть позже =====================
 
 # =============================================================
-    with io.open('rezult.txt', mode='w+', encoding='utf-8') as f:
-        f.write(f'{summary}')
+    # with io.open('rezult.txt', mode='w+', encoding='utf-8') as f:
+    #     f.write(f'{summary}')
 
 
 if __name__ == '__main__':
