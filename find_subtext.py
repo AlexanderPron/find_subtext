@@ -1,6 +1,28 @@
 from utils.OrderedSet import OrderedSet
 import io
-from difflib import SequenceMatcher
+
+from tkinter import *
+import tkinter as tk
+from tkinter import scrolledtext
+from tkinter import ttk
+
+from tkinter import filedialog as fd
+
+
+def select_file(path_file: Entry):
+    filepath = fd.askopenfilename(
+        filetypes=[("Text files", ".txt"), ("Word files", ".doc .docx"), ("PDF files", ".pdf")]
+    )
+    if filepath != "":
+        path_file.delete(0, END)
+        path_file.insert(0, filepath)
+
+
+def save_to_file(field: tk.Text):
+    filepath = fd.asksaveasfilename(filetypes=[("Text files", ".txt")])
+    if filepath != "":
+        with io.open(filepath, mode='w+', encoding='utf-8') as f:
+            f.write(f'{field.get("1.0", END)}')
 
 
 russianAlphabet = {
@@ -96,12 +118,6 @@ def extractCommonPassages(commonNGrams):
     return commonPassages
 
 
-# def bigram_to_wordslist(words: list, bg: tuple) -> list:
-#     """ ВАЖНО: В кортеже биграммы bg первым элементом должен быть порядковый номер слова из текста text"""
-#     wlist = [words[bg[0]], words[bg[0] + 1]]
-#     return wlist
-
-
 def bigramlist_to_wordslist(words: list, bg_list: list) -> list:
     rezlist = []
     temp = -1
@@ -123,28 +139,94 @@ def bigramlist_to_wordslist(words: list, bg_list: list) -> list:
     return rezlist
 
 
-def main():
-    with io.open('data/1_smaller.txt', encoding='utf-8') as f:
+def process(path_file1: str, path_file2: str, min_words: int, field: tk.Text):
+    with io.open(path_file1) as f:
         txt1 = f.read()
-    with io.open('data/1_bigger.txt', encoding='utf-8') as f:
+    with io.open(path_file2) as f:
         txt2 = f.read()
-    subtext_bigrams = compareTwoTexts(txt1, txt2)
 
-# =========== Вариант 1 ======================================
+    words1 = extractWords(txt1, alphabet=russianAlphabet)
+    words2 = extractWords(txt2, alphabet=russianAlphabet)
+    if len(words1) <= len(words2):
+        subtext_bigrams = compareTwoTexts(txt1, txt2)
+        words = words1
+    else:
+        subtext_bigrams = compareTwoTexts(txt2, txt1)
+        words = words2
 
-    words = extractWords(txt1, alphabet=russianAlphabet)
     parts = bigramlist_to_wordslist(words, subtext_bigrams)
     summary = ''
+    uniq_parts = []
     for i in parts:
-        summary += f"{' '.join(i)}\n============================================\n"
-    with io.open('rezult.txt', mode='w+', encoding='utf-8') as f:
-        f.write(f'{summary}')
+        if i not in uniq_parts:
+            uniq_parts.append(i)
+    for i in uniq_parts:
+        if len(i) >= min_words:
+            summary += f'{" ".join(i)}\n'
+            # summary += f"{' '.join(i)}\n============================================\n"
+    field.delete(1.0, END)
+    field.insert(INSERT, summary)
 
-# =========== Вариант 2. Будет чуть позже =====================
 
-# =============================================================
-    # with io.open('rezult.txt', mode='w+', encoding='utf-8') as f:
-    #     f.write(f'{summary}')
+def main():
+    main_window = tk.Tk()
+    main_window.title("Поиск совпадающих подтекстов в двух текстах")
+    main_window.geometry("1050x500")
+    frame1 = tk.LabelFrame(main_window, text='Входные данные')
+    frame1.grid(column=0, row=0, padx=5, pady=5, sticky=NSEW)
+    frame2 = tk.LabelFrame(main_window, text='Выходные данные')
+    frame2.grid(column=1, row=0, padx=5, pady=5, sticky=NSEW)
+    frame3 = tk.Frame(main_window)
+    frame3.grid(column=0, row=1, padx=5, pady=5, sticky=NSEW)
+
+    label_f1 = Label(frame1, text='Выберите файл 1', anchor=W)
+    label_f1.grid(column=0, row=0, padx=5, pady=5, sticky=EW)
+    path_file1 = Entry(frame1)
+    path_file1.grid(column=0, row=1, padx=5, pady=5, sticky=EW)
+    choose_file1 = Button(frame1, text='Выбрать...', command=lambda: select_file(path_file1))
+    choose_file1.grid(column=1, row=1, padx=5, pady=5)
+
+    label_f2 = Label(frame1, text='Выберите файл 2', anchor=W)
+    label_f2.grid(column=0, row=2, padx=5, pady=5, sticky=EW)
+    path_file2 = Entry(frame1)
+    path_file2.grid(column=0, row=3, padx=5, pady=5, sticky=EW)
+    choose_file2 = Button(frame1, text='Выбрать...', command=lambda: select_file(path_file2))
+    choose_file2.grid(column=1, row=3, padx=5, pady=5)
+
+    min_words_field = Entry(frame1, width=5)
+    min_words_field.insert(0, '5')
+    min_words_field.grid(column=0, row=5, padx=5, pady=5, sticky=W)
+    label_f2 = Label(frame1, text='Минимальное количество слов совпадений', anchor=W)
+    label_f2.grid(column=0, row=4, padx=5, pady=5, sticky=EW)
+
+    SVBar = tk.Scrollbar(frame2)
+    SVBar.pack(side=tk.RIGHT, fill="y")
+    SHBar = tk.Scrollbar(frame2, orient=tk.HORIZONTAL)
+    SHBar.pack(side=tk.BOTTOM, fill="x")
+    TBox = tk.Text(
+        frame2,
+        yscrollcommand=SVBar.set,
+        xscrollcommand=SHBar.set,
+        wrap="none"
+    )
+    TBox.pack(expand=0, fill=tk.BOTH)
+    SHBar.config(command=TBox.xview)
+    SVBar.config(command=TBox.yview)
+
+    start_btn = Button(
+        frame3,
+        text='Старт',
+        command=lambda: process(path_file1.get(), path_file2.get(), int(min_words_field.get()), TBox)
+    )
+    save_to_file_btn = Button(
+        frame3,
+        text='Сохранить',
+        command=lambda: save_to_file(TBox)
+    )
+    start_btn.grid(column=0, row=0, padx=5, pady=5)
+    save_to_file_btn.grid(column=1, row=0, padx=5, pady=5)
+
+    main_window.mainloop()
 
 
 if __name__ == '__main__':
