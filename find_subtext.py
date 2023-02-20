@@ -169,8 +169,9 @@ def process(path_file1: str, path_file2: str, min_words: int, field: tk.Text):
 
 
 def main():
+    app_version = 'v.1.0b'
     main_window = tk.Tk()
-    main_window.title("Поиск совпадающих подтекстов в двух текстах")
+    main_window.title(f"Поиск совпадающих подтекстов в двух текстах {app_version}")
     main_window.geometry("1050x500")
     frame1 = tk.LabelFrame(main_window, text='Входные данные')
     frame1.grid(column=0, row=0, padx=5, pady=5, sticky=NSEW)
