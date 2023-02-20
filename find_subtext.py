@@ -1,17 +1,26 @@
 from utils.OrderedSet import OrderedSet
 import io
+from utils.validators import (
+    file_validate,
+    number_validate
+)
 
 from tkinter import *
 import tkinter as tk
-from tkinter import scrolledtext
-from tkinter import ttk
-
 from tkinter import filedialog as fd
+
+import textractplus as tp
+import fitz
 
 
 def select_file(path_file: Entry):
     filepath = fd.askopenfilename(
-        filetypes=[("Text files", ".txt"), ("Word files", ".doc .docx"), ("PDF files", ".pdf")]
+        filetypes=[
+            ("All supported", ".txt .doc .docx .rtf .pdf"),
+            ("Text files", ".txt"),
+            ("Word files", ".doc .docx .rtf"),
+            ("PDF files", ".pdf"),
+        ]
     )
     if filepath != "":
         path_file.delete(0, END)
@@ -19,10 +28,40 @@ def select_file(path_file: Entry):
 
 
 def save_to_file(field: tk.Text):
-    filepath = fd.asksaveasfilename(filetypes=[("Text files", ".txt")])
+    filepath = fd.asksaveasfilename(defaultextension='.txt', filetypes=[("Text files", ".txt")])
     if filepath != "":
         with io.open(filepath, mode='w+', encoding='utf-8') as f:
-            f.write(f'{field.get("1.0", END)}')
+            f.write(f'{field.get(1.0, END)}')
+
+
+def clear_field(field: tk.Text):
+    field.delete(1.0, END)
+
+
+def doc_to_txt(file_pathname):
+    text = tp.process(file_pathname, encoding='utf-8')
+    text = text.decode('utf-8')
+    return text
+
+
+def pdf_to_txt(file_pathname):
+    doc = fitz.open(file_pathname)
+    text = ""
+    for page in doc:
+        text += page.get_text()
+    return text
+
+
+def get_text_from_file(file_pathname: str):
+    type_file = file_pathname.split('.')[-1].lower()
+    if type_file in ['doc', 'docx', 'rtf']:
+        return doc_to_txt(file_pathname)
+    elif type_file == 'pdf':
+        return pdf_to_txt(file_pathname)
+    else:
+        with io.open(file_pathname) as f:
+            txt = f.read()
+        return txt
 
 
 russianAlphabet = {
@@ -139,12 +178,32 @@ def bigramlist_to_wordslist(words: list, bg_list: list) -> list:
     return rezlist
 
 
-def process(path_file1: str, path_file2: str, min_words: int, field: tk.Text):
-    with io.open(path_file1) as f:
-        txt1 = f.read()
-    with io.open(path_file2) as f:
-        txt2 = f.read()
-
+def process(path_file1: str, path_file2: str, min_words: str, field: tk.Text, info_label: tk.Label):
+    info_label.config(text='')
+    try:
+        file_validate(path_file1, ['txt', 'pdf', 'docx'])
+    except TypeError as e:
+        info_label.config(text=f'{e}')
+        return
+    except FileExistsError as e:
+        info_label.config(text=f'{e}')
+        return
+    try:
+        file_validate(path_file2, ['txt', 'pdf', 'docx'])
+    except TypeError as e:
+        info_label.config(text=f'{e}')
+        return
+    except FileExistsError as e:
+        info_label.config(text=f'{e}')
+        return
+    try:
+        number_validate(min_words)
+        min_words = int(min_words)
+    except ValueError as e:
+        info_label.config(text=f'{e}')
+        return
+    txt1 = get_text_from_file(path_file1)
+    txt2 = get_text_from_file(path_file2)
     words1 = extractWords(txt1, alphabet=russianAlphabet)
     words2 = extractWords(txt2, alphabet=russianAlphabet)
     if len(words1) <= len(words2):
@@ -163,13 +222,12 @@ def process(path_file1: str, path_file2: str, min_words: int, field: tk.Text):
     for i in uniq_parts:
         if len(i) >= min_words:
             summary += f'{" ".join(i)}\n'
-            # summary += f"{' '.join(i)}\n============================================\n"
     field.delete(1.0, END)
     field.insert(INSERT, summary)
 
 
 def main():
-    app_version = 'v.1.0b'
+    app_version = 'v.1.0'
     main_window = tk.Tk()
     main_window.title(f"Поиск совпадающих подтекстов в двух текстах {app_version}")
     main_window.geometry("1050x500")
@@ -194,11 +252,14 @@ def main():
     choose_file2 = Button(frame1, text='Выбрать...', command=lambda: select_file(path_file2))
     choose_file2.grid(column=1, row=3, padx=5, pady=5)
 
+    label_f2 = Label(frame1, text='Минимальное количество слов совпадений', anchor=W)
+    label_f2.grid(column=0, row=4, padx=5, pady=5, sticky=EW)
     min_words_field = Entry(frame1, width=5)
     min_words_field.insert(0, '5')
     min_words_field.grid(column=0, row=5, padx=5, pady=5, sticky=W)
-    label_f2 = Label(frame1, text='Минимальное количество слов совпадений', anchor=W)
-    label_f2.grid(column=0, row=4, padx=5, pady=5, sticky=EW)
+
+    info_label = Label(frame1, text='', anchor=W, fg='red')
+    info_label.grid(column=0, row=6, padx=5, pady=5, sticky=EW)
 
     SVBar = tk.Scrollbar(frame2)
     SVBar.pack(side=tk.RIGHT, fill="y")
@@ -217,15 +278,27 @@ def main():
     start_btn = Button(
         frame3,
         text='Старт',
-        command=lambda: process(path_file1.get(), path_file2.get(), int(min_words_field.get()), TBox)
+        command=lambda: process(path_file1.get(), path_file2.get(), min_words_field.get(), TBox, info_label)
     )
     save_to_file_btn = Button(
         frame3,
         text='Сохранить',
         command=lambda: save_to_file(TBox)
     )
+    clear_btn = Button(
+        frame3,
+        text='Очистить',
+        command=lambda: clear_field(TBox)
+    )
+    quit_app_btn = Button(
+        frame3,
+        text='Выход',
+        command=main_window.destroy
+    )
     start_btn.grid(column=0, row=0, padx=5, pady=5)
     save_to_file_btn.grid(column=1, row=0, padx=5, pady=5)
+    clear_btn.grid(column=2, row=0, padx=5, pady=5)
+    quit_app_btn.grid(column=3, row=0, padx=5, pady=5)
 
     main_window.mainloop()
 
