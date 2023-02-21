@@ -1,5 +1,6 @@
 from utils.OrderedSet import OrderedSet
 import io
+import os
 from utils.validators import (
     file_validate,
     number_validate
@@ -180,6 +181,8 @@ def bigramlist_to_wordslist(words: list, bg_list: list) -> list:
 
 def process(path_file1: str, path_file2: str, min_words: str, field: tk.Text, info_label: tk.Label):
     info_label.config(text='')
+    path_file1 = os.path.abspath(path_file1)
+    path_file2 = os.path.abspath(path_file2)
     try:
         file_validate(path_file1, ['txt', 'pdf', 'docx'])
     except TypeError as e:
@@ -300,6 +303,7 @@ def main():
     clear_btn.grid(column=2, row=0, padx=5, pady=5)
     quit_app_btn.grid(column=3, row=0, padx=5, pady=5)
 
+    # main_window.withdraw()
     main_window.mainloop()
 
 
