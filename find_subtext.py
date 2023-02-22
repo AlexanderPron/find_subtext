@@ -9,6 +9,7 @@ from utils.validators import (
 from tkinter import *
 import tkinter as tk
 from tkinter import filedialog as fd
+import docxpy
 
 import textractplus as tp
 import fitz
@@ -40,8 +41,10 @@ def clear_field(field: tk.Text):
 
 
 def doc_to_txt(file_pathname):
-    text = tp.process(file_pathname, encoding='utf-8')
-    text = text.decode('utf-8')
+    # text = tp.process(file_pathname, encoding='utf-8')
+    # text = text.decode('utf-8')
+    text = docxpy.process(file_pathname)
+
     return text
 
 
@@ -179,12 +182,12 @@ def bigramlist_to_wordslist(words: list, bg_list: list) -> list:
     return rezlist
 
 
-def process(path_file1: str, path_file2: str, min_words: str, field: tk.Text, info_label: tk.Label):
+def find_subtext(path_file1: str, path_file2: str, min_words: str, field: tk.Text, info_label: tk.Label):
     info_label.config(text='')
     path_file1 = os.path.abspath(path_file1)
     path_file2 = os.path.abspath(path_file2)
     try:
-        file_validate(path_file1, ['txt', 'pdf', 'docx'])
+        file_validate(path_file1, ['txt', 'pdf', 'docx', 'doc'])
     except TypeError as e:
         info_label.config(text=f'{e}')
         return
@@ -192,7 +195,7 @@ def process(path_file1: str, path_file2: str, min_words: str, field: tk.Text, in
         info_label.config(text=f'{e}')
         return
     try:
-        file_validate(path_file2, ['txt', 'pdf', 'docx'])
+        file_validate(path_file2, ['txt', 'pdf', 'docx', 'doc'])
     except TypeError as e:
         info_label.config(text=f'{e}')
         return
@@ -281,7 +284,7 @@ def main():
     start_btn = Button(
         frame3,
         text='Старт',
-        command=lambda: process(path_file1.get(), path_file2.get(), min_words_field.get(), TBox, info_label)
+        command=lambda: find_subtext(path_file1.get(), path_file2.get(), min_words_field.get(), TBox, info_label)
     )
     save_to_file_btn = Button(
         frame3,
@@ -303,7 +306,6 @@ def main():
     clear_btn.grid(column=2, row=0, padx=5, pady=5)
     quit_app_btn.grid(column=3, row=0, padx=5, pady=5)
 
-    # main_window.withdraw()
     main_window.mainloop()
 
 
