@@ -1,4 +1,5 @@
 from utils.OrderedSet import OrderedSet
+from utils.dataObjects import WordData
 import io
 import os
 from utils.validators import (
@@ -10,17 +11,15 @@ from tkinter import *
 import tkinter as tk
 from tkinter import filedialog as fd
 import docxpy
-
-import textractplus as tp
 import fitz
 
 
 def select_file(path_file: Entry):
     filepath = fd.askopenfilename(
         filetypes=[
-            ("All supported", ".txt .doc .docx .rtf .pdf"),
+            ("All supported", ".txt .docx .pdf"),
             ("Text files", ".txt"),
-            ("Word files", ".doc .docx .rtf"),
+            ("Word files", ".docx"),
             ("PDF files", ".pdf"),
         ]
     )
@@ -40,11 +39,8 @@ def clear_field(field: tk.Text):
     field.delete(1.0, END)
 
 
-def doc_to_txt(file_pathname):
-    # text = tp.process(file_pathname, encoding='utf-8')
-    # text = text.decode('utf-8')
+def docx_to_txt(file_pathname):
     text = docxpy.process(file_pathname)
-
     return text
 
 
@@ -58,14 +54,21 @@ def pdf_to_txt(file_pathname):
 
 def get_text_from_file(file_pathname: str):
     type_file = file_pathname.split('.')[-1].lower()
-    if type_file in ['doc', 'docx', 'rtf']:
-        return doc_to_txt(file_pathname)
+    encoding_list = ['utf-8', 'cp1251']
+    if type_file == 'docx':
+        return docx_to_txt(file_pathname)
     elif type_file == 'pdf':
         return pdf_to_txt(file_pathname)
     else:
-        with io.open(file_pathname) as f:
-            txt = f.read()
-        return txt
+        for encode in encoding_list:
+            try:
+                with io.open(file_pathname, encoding=encode) as f:
+                    txt = f.read()
+                    return txt
+            except UnicodeDecodeError:
+                continue
+        raise ValueError(f'Не подходящая кодировка файла {file_pathname.split("//")[-1]}\nПопробуйте \
+перекодировать его в utf-8 или windows-1251')
 
 
 russianAlphabet = {
@@ -74,8 +77,16 @@ russianAlphabet = {
     'л', 'б', 'щ', 'д', 'ю', 'з', 'ж', 'х', 'э', 'ъ', 'ё'
 }
 
+englishAlphbet = {
+    'q', 'a', 'z', 'w', 's', 'x', 'e', 'd', 'c', 'r', 'f',
+    'v', 't', 'g', 'b', 'y', 'h', 'n', 'u', 'j', 'm', 'i',
+    'k', 'o', 'l', 'p'
+}
 
-def compareTwoTexts(txt1, txt2, alphabet=russianAlphabet):
+eng_rus_alphabet = set.union(russianAlphabet, englishAlphbet)
+
+
+def compareTwoTexts(txt1, txt2, alphabet=eng_rus_alphabet):
     # txt1 should be the shorter one
     ngramd1 = extractNGrams(txt1, alphabet)
     ngramd2 = extractNGrams(txt2, alphabet)
@@ -142,7 +153,7 @@ def getCommonNGrams(ngramDic1, ngramDic2):
 
 def extractCommonPassages(commonNGrams):
     if not commonNGrams:
-        raise ValueError('no common ngrams')
+        raise ValueError('Нет биграмм или неверная кодировка файла')
     commonPassages = []
     temp = []
     while commonNGrams:
@@ -184,10 +195,13 @@ def bigramlist_to_wordslist(words: list, bg_list: list) -> list:
 
 def find_subtext(path_file1: str, path_file2: str, min_words: str, field: tk.Text, info_label: tk.Label):
     info_label.config(text='')
+    if not (path_file1 and path_file2):
+        info_label.config(text='Выберите файл')
+        return
     path_file1 = os.path.abspath(path_file1)
     path_file2 = os.path.abspath(path_file2)
     try:
-        file_validate(path_file1, ['txt', 'pdf', 'docx', 'doc'])
+        file_validate(path_file1, ['txt', 'pdf', 'docx'])
     except TypeError as e:
         info_label.config(text=f'{e}')
         return
@@ -195,7 +209,7 @@ def find_subtext(path_file1: str, path_file2: str, min_words: str, field: tk.Tex
         info_label.config(text=f'{e}')
         return
     try:
-        file_validate(path_file2, ['txt', 'pdf', 'docx', 'doc'])
+        file_validate(path_file2, ['txt', 'pdf', 'docx'])
     except TypeError as e:
         info_label.config(text=f'{e}')
         return
@@ -208,32 +222,121 @@ def find_subtext(path_file1: str, path_file2: str, min_words: str, field: tk.Tex
     except ValueError as e:
         info_label.config(text=f'{e}')
         return
-    txt1 = get_text_from_file(path_file1)
-    txt2 = get_text_from_file(path_file2)
-    words1 = extractWords(txt1, alphabet=russianAlphabet)
-    words2 = extractWords(txt2, alphabet=russianAlphabet)
+    try:
+        txt1 = get_text_from_file(path_file1)
+        txt2 = get_text_from_file(path_file2)
+    except ValueError as e:
+        info_label.config(text=f'{e}')
+        return
+
+    words1 = extractWords(txt1, alphabet=eng_rus_alphabet)
+    words2 = extractWords(txt2, alphabet=eng_rus_alphabet)
+    ext_words1 = ext_extractWords(txt1, alphabet=eng_rus_alphabet)
+    ext_words2 = ext_extractWords(txt2, alphabet=eng_rus_alphabet)
+    # print(f'{len(words1)}={len(words2)}={len(ext_words1)}={len(ext_words2)}')
+    sub = ''
     if len(words1) <= len(words2):
-        subtext_bigrams = compareTwoTexts(txt1, txt2)
-        words = words1
+        try:
+            subtext_bigrams = compareTwoTexts(txt1, txt2)
+        except ValueError as e:
+            info_label.config(text=f'{e}')
+            return
+        # words = words1
+        ext_words = ext_words1
+        tmp = ext_words2
+        txt = txt1
+        file_name1 = path_file1.split('\\')[-1]
+        file_name2 = path_file2.split('\\')[-1]
     else:
         subtext_bigrams = compareTwoTexts(txt2, txt1)
-        words = words2
-
-    parts = bigramlist_to_wordslist(words, subtext_bigrams)
-    summary = ''
-    uniq_parts = []
-    for i in parts:
-        if i not in uniq_parts:
-            uniq_parts.append(i)
-    for i in uniq_parts:
-        if len(i) >= min_words:
-            summary += f'{" ".join(i)}\n'
+        # words = words2
+        ext_words = ext_words2
+        tmp = ext_words1
+        txt = txt2
+        file_name1 = path_file2.split('\\')[-1]
+        file_name2 = path_file1.split('\\')[-1]
+    for subtext in subtext_bigrams:
+        if len(subtext) >= min_words - 1:
+            line_n2 = tmp[subtext[0][1]].line_num
+            line_n1 = ext_words[subtext[0][0]].line_num
+            start_pos = ext_words[subtext[0][0]].first_symbol_pos
+            end_pos = ext_words[subtext[-1][0] + 1].first_symbol_pos + len(ext_words[subtext[-1][0] + 1].word)
+            el = txt[start_pos: end_pos]
+            sub += f'\n=========================\nВ строке {line_n1} файла {file_name1} и \
+в строке {line_n2} файла {file_name2}:\n{el}'
+    # print(subtext_bigrams
+    # parts = bigramlist_to_wordslist(words, subtext_bigrams)
+    # summary = ''
+    # uniq_parts = []
+    # for i in parts:
+    #     if i not in uniq_parts:
+    #         uniq_parts.append(i)
+    # for i in uniq_parts:
+    #     if len(i) >= min_words:
+    #         summary += f'{" ".join(i)}\n\n'
     field.delete(1.0, END)
-    field.insert(INSERT, summary)
+    field.insert(INSERT, sub)
+
+
+def ext_extractWords(s: str, alphabet) -> list[WordData]:
+    arr = []
+    temp = []
+    char_pos = 0
+    curr_line = 1
+    word_number = 0
+    lines = s.split('\n')
+    for line in lines:
+        temp = []
+        for char in line.lower():
+            if char in alphabet or char == '-' and len(temp) > 0:
+                temp.append(char)
+            else:
+                if len(temp) > 0:
+                    word = WordData(
+                        word=''.join(temp),
+                        first_symbol_pos=char_pos - len(temp),
+                        line_num=curr_line,
+                        wnumber=word_number
+                    )
+                    arr.append(word)
+                    word_number += 1
+                    temp = []
+            char_pos += 1
+        if len(temp) > 0:
+            word = WordData(
+                word=''.join(temp),
+                first_symbol_pos=char_pos - len(temp),
+                line_num=curr_line,
+                wnumber=word_number
+            )
+            arr.append(word)
+        curr_line += 1
+        char_pos += 1
+    return arr
+
+
+# def make_extended_ngrams(ext_word_list: list[WordData]):
+#     ext_ngrams = []
+#     for i in range(len(ext_word_list) - 1):
+#         ext_ngrams.append(
+#             # (words[i] + ' ' + words[i + 1], i) #  old
+#             (ext_word_list[i], ext_word_list[i + 1], i)
+#         )
+#     return ext_ngrams
+
+
+# def test():
+#     path_file1 = 'I:/develop/find_subtext/data/test.txt'
+#     txt1 = get_text_from_file(path_file1)
+#     words = ext_extractWords(txt1, alphabet=russianAlphabet)
+#     start_pos = words[0].first_symbol_pos
+#     end_pos = words[9].first_symbol_pos + len(words[9].word)
+#     ls = txt1[start_pos : end_pos]  # Получить текст с 1 по 10 слово
+#     print(ls)
 
 
 def main():
-    app_version = 'v.1.0'
+    app_version = 'v.1.1alpha'
     main_window = tk.Tk()
     main_window.title(f"Поиск совпадающих подтекстов в двух текстах {app_version}")
     main_window.geometry("1050x500")
@@ -264,7 +367,7 @@ def main():
     min_words_field.insert(0, '5')
     min_words_field.grid(column=0, row=5, padx=5, pady=5, sticky=W)
 
-    info_label = Label(frame1, text='', anchor=W, fg='red')
+    info_label = Label(frame1, text='', anchor=W, fg='red', wraplength=200)
     info_label.grid(column=0, row=6, padx=5, pady=5, sticky=EW)
 
     SVBar = tk.Scrollbar(frame2)
@@ -275,7 +378,7 @@ def main():
         frame2,
         yscrollcommand=SVBar.set,
         xscrollcommand=SHBar.set,
-        wrap="none"
+        # wrap="none"
     )
     TBox.pack(expand=0, fill=tk.BOTH)
     SHBar.config(command=TBox.xview)

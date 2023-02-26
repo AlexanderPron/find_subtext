@@ -24,7 +24,9 @@ def file_validate(file_path: str, file_types=[]) -> bool:
 
 def number_validate(val: any) -> bool:
     try:
-        int(val)
-        return True
+        if int(val) > 1:
+            return True
+        else:
+            raise ValueError
     except ValueError:
-        raise ValueError(f'{val} не целое число')
+        raise ValueError(f'{val} не допустимое число. Введите целое число большее 1')
