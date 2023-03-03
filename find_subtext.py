@@ -83,7 +83,11 @@ englishAlphbet = {
     'k', 'o', 'l', 'p'
 }
 
-eng_rus_alphabet = set.union(russianAlphabet, englishAlphbet)
+digits = {
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+}
+
+eng_rus_alphabet = set.union(russianAlphabet, englishAlphbet, digits)
 
 
 def compareTwoTexts(txt1, txt2, alphabet=eng_rus_alphabet):
