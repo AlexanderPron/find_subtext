@@ -117,10 +117,7 @@ def color_subtext(document: Document, run: Run):
     document.save('d.docx')
 
 
-def extract_words_from_docx(docx_pathname: str, alphabet) -> list[DocxWordData]:
-    f = open(docx_pathname, 'rb')
-    document = Document(f)
-    f.close()
+def extract_words_from_docx(document: Document, alphabet) -> list[DocxWordData]:
     arr = []
     temp = []
     curr_paragraph = 0
@@ -152,7 +149,7 @@ def extract_words_from_docx(docx_pathname: str, alphabet) -> list[DocxWordData]:
             )
             arr.append(word)
         curr_paragraph += 1
-        word_number = 0
+        # word_number += 1
         curr_symbol_pos += 1
     return arr
 
@@ -411,7 +408,6 @@ def find_subtext(path_file1: str, path_file2: str, min_words: str, field: tk.Tex
             el = txt[start_pos: end_pos]
             sub += f'\n=========================\nВ строке {line_n1} файла {file_name1} и \
 в строке {line_n2} файла {file_name2}:\n{el}'
-    # print(subtext_bigrams
     # parts = bigramlist_to_wordslist(words, subtext_bigrams)
     # summary = ''
     # uniq_parts = []
@@ -480,24 +476,20 @@ def paragraph_words(words: list[DocxWordData], paragraph_num: int) -> list[DocxW
 
 
 def test():
-    path_file1 = 'I:/develop/ОТЧЕТ_ЭНЕРДЖИНЕТ_ФИНАЛ_в_отправку_13_12_2022.docx'
-    # color_subtext(path_file1, 'тестовый пример')
-    words = extract_words_from_docx(path_file1, eng_rus_alphabet)
+    path_file1 = 'D:/develop/ОТЧЕТ_ЭНЕРДЖИНЕТ_ФИНАЛ_в_отправку_13_12_2022.docx'
     f = open(path_file1, 'rb')
     document = Document(f)
     f.close()
+    words = extract_words_from_docx(document, eng_rus_alphabet)
+    txt = get_text_from_file(path_file1)
+    words_txt = ext_extractWords(txt, eng_rus_alphabet)
     p = document.paragraphs[0]
     w = paragraph_words(words, 0)
     run = isolate_run(p, w[0].first_symbol_pos, w[-1].first_symbol_pos + len(w[-1].word))
-    print(run.text)
-    color_subtext(document, run)
-    # txt1 = get_text_from_file(path_file1)
-    # lines = txt1.split('\n')
-    # i = 1
-    # print(len(lines))
-    # for line in lines:
-    #     print(f'{i} - {line}')
-    #     i += 1
+    print(words[len(words)-1])
+    print(words_txt[len(words_txt)-1])
+    # print(run.text)
+    # color_subtext(document, run)
 
 
 def main():
