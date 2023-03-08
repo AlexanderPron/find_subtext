@@ -1,12 +1,19 @@
-from utils.OrderedSet import OrderedSet
-from utils.dataObjects import WordData, DocxWordData
 import io
 import os
 import itertools
 import copy
+
+from utils.OrderedSet import OrderedSet
+from utils.dataObjects import WordData, DocxWordData
+from utils.isolate_run import isolate_run
 from utils.validators import (
     file_validate,
-    number_validate
+    number_validate,
+)
+from utils.constants import (
+    russianAlphabet,
+    englishAlphbet,
+    digits,
 )
 
 from tkinter import *
@@ -18,140 +25,16 @@ from docx import Document
 from docx.text.run import Run
 from docx.text.paragraph import Paragraph
 from docx.shared import Pt
-from docx.oxml.ns import qn
-from docx.oxml.shared import OxmlElement
 from docx.enum.text import WD_COLOR_INDEX
-# Font.highlight_color
-# from docx.text.font import hi
 
 
-def isolate_run(paragraph, start, end):
-    """Return docx.text.Run object containing only `paragraph.text[start:end]`.
-
-    Runs are split as required to produce a new run at the `start` that ends at `end`.
-    Runs are unchanged if the indicated range of text already occupies its own run. The
-    resulting run object is returned.
-
-    `start` and `end` are as in Python slice notation. For example, the first three
-    characters of the paragraph have (start, end) of (0, 3). `end` is *not* the index of
-    the last character. These correspond to `match.start()` and `match.end()` of a regex
-    match object and `s[start:end]` in Python slice notation.
-    """
-    rs = tuple(paragraph._p.r_lst)
-
-    def advance_to_run_containing_start(start, end):
-        """Return (r_idx, start, end) triple indicating start run and adjusted offsets.
-
-        The start run is the run the `start` offset occurs in. The returned `start` and
-        `end` values are adjusted to be relative to the start of `r_idx`.
-        """
-        # --- add 0 at end so `r_ends[-1] == 0` ---
-        r_ends = tuple(itertools.accumulate(len(r.text) for r in rs)) + (0,)
-        r_idx = 0
-        while start >= r_ends[r_idx]:
-            r_idx += 1
-        skipped_rs_offset = r_ends[r_idx - 1]
-        return rs[r_idx], r_idx, start - skipped_rs_offset, end - skipped_rs_offset
-
-    def split_off_prefix(r, start, end):
-        """Return adjusted `end` after splitting prefix off into separate run.
-
-        Does nothing if `r` is already the start of the isolated run.
-        """
-        if start > 0:
-            prefix_r = copy.deepcopy(r)
-            r.addprevious(prefix_r)
-            r.text = r.text[start:]
-            prefix_r.text = prefix_r.text[:start]
-        return end - start
-
-    def split_off_suffix(r, end):
-        """Split `r` at `end` such that suffix is in separate following run."""
-        suffix_r = copy.deepcopy(r)
-        r.addnext(suffix_r)
-        r.text = r.text[:end]
-        suffix_r.text = suffix_r.text[end:]
-
-    def lengthen_run(r, r_idx, end):
-        """Add prefixes of following runs to `r` until `end` is reached."""
-        while len(r.text) < end:
-            suffix_len_reqd = end - len(r.text)
-            r_idx += 1
-            next_r = rs[r_idx]
-            if len(next_r.text) <= suffix_len_reqd:
-                # --- subsume next run ---
-                r.text = r.text + next_r.text
-                next_r.getparent().remove(next_r)
-                continue
-            if len(next_r.text) > suffix_len_reqd:
-                # --- take prefix from next run ---
-                r.text = r.text + next_r.text[:suffix_len_reqd]
-                next_r.text = next_r.text[suffix_len_reqd:]
-
-    # --- 1. skip over any runs before the one containing the start of our range ---
-    r, r_idx, start, end = advance_to_run_containing_start(start, end)
-
-    # --- 2. split first run where our range starts, placing "prefix" to our range
-    # ---    in a new run inserted just before this run. After this, our run will begin
-    # ---    at the right point and the left-hand side of our work is done.
-    end = split_off_prefix(r, start, end)
-
-    # --- 3. if run is longer than isolation-range we need to split-off a suffix run ---
-    if len(r.text) > end:
-        split_off_suffix(r, end)
-
-    # --- 4. But if our run is shorter than the desired isolation-range we need to
-    # ---    lengthen it by taking text from subsequent runs
-    elif len(r.text) < end:
-        lengthen_run(r, r_idx, end)
-
-    # --- if neither 3 nor 4 apply it's because the run already ends in the right place
-    # --- and there's no further work to be done.
-
-    return Run(r, paragraph)
+eng_rus_alphabet = set.union(russianAlphabet, englishAlphbet, digits)
 
 
 def color_subtext(document: Document, run: Run):
     fontt = run.font
     fontt.highlight_color = WD_COLOR_INDEX.YELLOW
-    document.save('d.docx')
-
-
-def extract_words_from_docx(document: Document, alphabet) -> list[DocxWordData]:
-    arr = []
-    temp = []
-    curr_paragraph = 0
-    curr_symbol_pos = 0
-    word_number = 0
-    for paragraph in document.paragraphs:
-        for char in paragraph.text.lower():
-            if char in alphabet or char == '-' and len(temp) > 0:
-                temp.append(char)
-                curr_symbol_pos += 1
-            else:
-                if len(temp) > 0:
-                    word = DocxWordData(
-                        word=''.join(temp),
-                        paragraph_num=curr_paragraph,
-                        first_symbol_pos=curr_symbol_pos - len(temp),
-                        wnumber=word_number,
-                    )
-                    arr.append(word)
-                    word_number += 1
-                    curr_symbol_pos += 1
-                    temp = []
-        if len(temp) > 0:
-            word = DocxWordData(
-                word=''.join(temp),
-                paragraph_num=curr_paragraph,
-                first_symbol_pos=curr_symbol_pos - len(temp),
-                wnumber=word_number,
-            )
-            arr.append(word)
-        curr_paragraph += 1
-        # word_number += 1
-        curr_symbol_pos += 1
-    return arr
+    document.save('rezult.docx')
 
 
 def select_file(path_file: Entry):
@@ -209,25 +92,6 @@ def get_text_from_file(file_pathname: str):
                 continue
         raise ValueError(f'Не подходящая кодировка файла {file_pathname.split("//")[-1]}\nПопробуйте \
 перекодировать его в utf-8 или windows-1251')
-
-
-russianAlphabet = {
-    'й', 'ф', 'я', 'ц', 'ы', 'ч', 'у', 'в', 'с', 'к', 'а',
-    'м', 'е', 'п', 'и', 'н', 'р', 'т', 'г', 'о', 'ь', 'ш',
-    'л', 'б', 'щ', 'д', 'ю', 'з', 'ж', 'х', 'э', 'ъ', 'ё'
-}
-
-englishAlphbet = {
-    'q', 'a', 'z', 'w', 's', 'x', 'e', 'd', 'c', 'r', 'f',
-    'v', 't', 'g', 'b', 'y', 'h', 'n', 'u', 'j', 'm', 'i',
-    'k', 'o', 'l', 'p'
-}
-
-digits = {
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-}
-
-eng_rus_alphabet = set.union(russianAlphabet, englishAlphbet, digits)
 
 
 def compareTwoTexts(txt1, txt2, alphabet=eng_rus_alphabet):
@@ -377,7 +241,6 @@ def find_subtext(path_file1: str, path_file2: str, min_words: str, field: tk.Tex
     words2 = extractWords(txt2, alphabet=eng_rus_alphabet)
     ext_words1 = ext_extractWords(txt1, alphabet=eng_rus_alphabet)
     ext_words2 = ext_extractWords(txt2, alphabet=eng_rus_alphabet)
-    # print(f'{len(words1)}={len(words2)}={len(ext_words1)}={len(ext_words2)}')
     sub = ''
     if len(words1) <= len(words2):
         try:
@@ -458,15 +321,6 @@ def ext_extractWords(s: str, alphabet) -> list[WordData]:
     return arr
 
 
-# def make_extended_ngrams(ext_word_list: list[WordData]):
-#     ext_ngrams = []
-#     for i in range(len(ext_word_list) - 1):
-#         ext_ngrams.append(
-#             # (words[i] + ' ' + words[i + 1], i) #  old
-#             (ext_word_list[i], ext_word_list[i + 1], i)
-#         )
-#     return ext_ngrams
-
 def paragraph_words(words: list[DocxWordData], paragraph_num: int) -> list[DocxWordData]:
     paragraph_words_list = []
     for word in words:
@@ -476,20 +330,9 @@ def paragraph_words(words: list[DocxWordData], paragraph_num: int) -> list[DocxW
 
 
 def test():
-    path_file1 = 'D:/develop/ОТЧЕТ_ЭНЕРДЖИНЕТ_ФИНАЛ_в_отправку_13_12_2022.docx'
+    path_file1 = 'I:/develop/ОТЧЕТ_ЭНЕРДЖИНЕТ_ФИНАЛ_в_отправку_13_12_2022.docx'
     f = open(path_file1, 'rb')
-    document = Document(f)
     f.close()
-    words = extract_words_from_docx(document, eng_rus_alphabet)
-    txt = get_text_from_file(path_file1)
-    words_txt = ext_extractWords(txt, eng_rus_alphabet)
-    p = document.paragraphs[0]
-    w = paragraph_words(words, 0)
-    run = isolate_run(p, w[0].first_symbol_pos, w[-1].first_symbol_pos + len(w[-1].word))
-    print(words[len(words)-1])
-    print(words_txt[len(words_txt)-1])
-    # print(run.text)
-    # color_subtext(document, run)
 
 
 def main():
