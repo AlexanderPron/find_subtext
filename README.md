@@ -1,2 +1,2 @@
 # find_subtext
-.\venv\Scripts\pyinstaller.exe -F --hidden-import PyMuPDF .\find_subtext.py
+.\venv\Scripts\pyinstaller.exe -F --windowed --hidden-import PyMuPDF .\find_subtext.py
