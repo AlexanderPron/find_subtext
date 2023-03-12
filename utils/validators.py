@@ -1,7 +1,7 @@
 import io
 
 
-def file_validate(file_path: str, file_types=[]) -> bool:
+def file_validate(file_path: str, file_types=[]) -> str or bool:
     if file_types:
         ftype = file_path.split('.')[-1]
         if ftype and (ftype not in file_types):
@@ -10,7 +10,7 @@ def file_validate(file_path: str, file_types=[]) -> bool:
             try:
                 f = io.open(file_path)
                 f.close
-                return True
+                return ftype
             except (FileExistsError, FileNotFoundError):
                 raise FileExistsError('Не верный путь к файлу или имя файла')
     else:

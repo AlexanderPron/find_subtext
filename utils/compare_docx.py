@@ -1,31 +1,14 @@
-import io
-import os
-import itertools
-import copy
-
-from utils.OrderedSet import OrderedSet
 from utils.dataObjects import DocxWordData
-from utils.validators import (
-    file_validate,
-    number_validate
-)
 from utils.constants import (
     russianAlphabet,
     englishAlphbet,
     digits,
 )
 from utils.isolate_run import isolate_run
-from find_subtext import compareTwoTexts
+from utils.compare_txt import compareTwoTexts
 
-from tkinter import *
-import tkinter as tk
-from tkinter import filedialog as fd
-import docxpy
-import fitz
 from docx import Document
 from docx.text.run import Run
-from docx.text.paragraph import Paragraph
-from docx.shared import Pt
 from docx.enum.text import WD_COLOR_INDEX
 
 
@@ -50,6 +33,9 @@ def extract_words_from_docx(document: Document, alphabet) -> list[DocxWordData]:
                     )
                     arr.append(word)
                     word_number += 1
+                    curr_symbol_pos += 1
+                    temp = []
+                else:
                     curr_symbol_pos += 1
                     temp = []
         if len(temp) > 0:
@@ -126,39 +112,48 @@ def compare_two_docx(docx_words1: list[DocxWordData], docx_words2: list[DocxWord
     return rez
 
 
-def main():
+def compare_docx(path_file1, path_file2, min_words):
     alphabet = set.union(russianAlphabet, englishAlphbet, digits)
-    min_words = 15
-    path_file1 = 'I:/develop/ОТЧЕТ_ИТОГ_01_12_2021_в_отправку_в_Минэнерго.docx'
-    path_file2 = 'I:/develop/ОТЧЕТ_ЭНЕРДЖИНЕТ_ФИНАЛ_в_отправку_13_12_2022.docx'
-    # path_file1 = 'I:/develop/test2.docx'
-    # path_file2 = 'I:/develop/test1.docx'
     f = open(path_file1, 'rb')
     document1 = Document(f)
     f.close()
     f = open(path_file2, 'rb')
     document2 = Document(f)
     f.close()
+    file_name1 = path_file1.split('\\')[-1]
+    file_name2 = path_file2.split('\\')[-1]
     docx_first_last_words = []
+    docx_first_last_words2 = []
     words1 = extract_words_from_docx(document1, alphabet)
     words2 = extract_words_from_docx(document2, alphabet)
     if len(words1) <= len(words2):
         document = document1
         words = words1
+        temp_doc = document2
+        temp_words = words2
+        file_name = file_name1
+        temp_file_name = file_name2
         subtexts = compare_two_docx(words, words2, alphabet)
     else:
         document = document2
         words = words2
+        temp_doc = document1
+        temp_words = words1
+        file_name = file_name2
+        temp_file_name = file_name1
         subtexts = compare_two_docx(words, words1, alphabet)
     for subtext in subtexts:
         if len(subtext) >= min_words - 1:
             docx_first_last_words.append((subtext[0][0], subtext[-1][0]))
+            docx_first_last_words2.append((subtext[0][1], subtext[-1][1]))
     for sub in docx_first_last_words:
         runs = make_runs_from_words(document, words[sub[0]], words[sub[1] + 1])
         for run in runs:
             color_subtext(run)
-    document.save('rezult.docx')
+    document.save(f'colored_{file_name}')
 
-
-if __name__ == '__main__':
-    main()
+    for sub in docx_first_last_words2:
+        runs = make_runs_from_words(temp_doc, temp_words[sub[0]], temp_words[sub[1] + 1])
+        for run in runs:
+            color_subtext(run)
+    temp_doc.save(f'colored_{temp_file_name}')
