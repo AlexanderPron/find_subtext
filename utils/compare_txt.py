@@ -8,7 +8,10 @@ from utils.constants import (
     englishAlphbet,
     digits,
 )
-from utils.dataObjects import WordData
+from utils.dataObjects import (
+    WordData,
+    Subtext,
+)
 
 eng_rus_alphabet = set.union(russianAlphabet, englishAlphbet, digits)
 
@@ -189,7 +192,7 @@ def ext_extractWords(s: str, alphabet) -> list[WordData]:
     return arr
 
 
-def compare_txt(path_file1, path_file2, min_words):
+def compare_txt(path_file1: str, path_file2: str, min_words: int) -> list[Subtext]:
     try:
         txt1 = get_text_from_file(path_file1)
         txt2 = get_text_from_file(path_file2)
@@ -209,15 +212,16 @@ def compare_txt(path_file1, path_file2, min_words):
         ext_words = ext_words1
         tmp = ext_words2
         txt = txt1
-        file_name1 = path_file1.split('\\')[-1]
-        file_name2 = path_file2.split('\\')[-1]
+        # file_name1 = path_file1.split('\\')[-1]
+        # file_name2 = path_file2.split('\\')[-1]
     else:
         subtext_bigrams = compareTwoTexts(txt2, txt1)
         ext_words = ext_words2
         tmp = ext_words1
         txt = txt2
-        file_name1 = path_file2.split('\\')[-1]
-        file_name2 = path_file1.split('\\')[-1]
+        # file_name1 = path_file2.split('\\')[-1]
+        # file_name2 = path_file1.split('\\')[-1]
+    subs = []
     for subtext in subtext_bigrams:
         if len(subtext) >= min_words - 1:
             line_n2 = tmp[subtext[0][1]].line_num
@@ -225,15 +229,10 @@ def compare_txt(path_file1, path_file2, min_words):
             start_pos = ext_words[subtext[0][0]].first_symbol_pos
             end_pos = ext_words[subtext[-1][0] + 1].first_symbol_pos + len(ext_words[subtext[-1][0] + 1].word)
             el = txt[start_pos: end_pos]
-            sub += f'\n=========================\nВ строке {line_n1} файла {file_name1} и \
-в строке {line_n2} файла {file_name2}:\n{el}'
-    return sub
-    # parts = bigramlist_to_wordslist(words, subtext_bigrams)
-    # summary = ''
-    # uniq_parts = []
-    # for i in parts:
-    #     if i not in uniq_parts:
-    #         uniq_parts.append(i)
-    # for i in uniq_parts:
-    #     if len(i) >= min_words:
-    #         summary += f'{" ".join(i)}\n\n'
+            sub = Subtext(
+                quote=el,
+                linenum_file_1=line_n1,
+                linenum_file_2=line_n2,
+            )
+            subs.append(sub)
+    return subs

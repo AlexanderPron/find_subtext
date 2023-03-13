@@ -1,6 +1,8 @@
 import io
 import os
 import threading
+from datetime import datetime as dt
+import locale
 
 from utils.validators import (
     file_validate,
@@ -13,14 +15,18 @@ from utils.constants import (
 )
 from utils.compare_docx import compare_docx
 from utils.compare_txt import compare_txt
+from utils.dataObjects import Subtext
 
 from tkinter import *
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog as fd
 
+from babel.dates import format_datetime
+
 
 eng_rus_alphabet = set.union(russianAlphabet, englishAlphbet, digits)
+# locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 
 def select_file(path_file: Entry):
@@ -56,6 +62,24 @@ def progress_start(pb: ttk.Progressbar):
 def progress_stop(pb: ttk.Progressbar):
     pb.stop()
     pb.grid_forget()
+
+
+def make_output(path_file1: str, path_file2: str, subs: list[Subtext]) -> str:
+    file_name1 = path_file1.split('\\')[-1]
+    file_name2 = path_file2.split('\\')[-1]
+    output = f'Сравнение содержимого файлов на цитирование.\n\
+{format_datetime(dt.now(), format="<dd MMMM yyyy> <HH:mm:ss>", locale="ru")}\n\
+Файл 1: <{file_name1}>\n\
+Файл 2: <{file_name2}>\n\
+Предоставление найденных  совпадений:\n'
+    for sub in subs:
+        output += f'[{sub.linenum_file_1}|{sub.linenum_file_2}]\n{sub.quote}\n\
+*******************************************************************************\n'
+    return output
+
+
+def check_file(path_file1, path_file2):
+    pass
 
 
 def find_subtext(
@@ -95,22 +119,23 @@ def find_subtext(
         info_label.config(text=f'{e}')
         return
     threading.Thread(target=lambda: progress_start(pb)).start()
+    shoter_file, longer_file = check_file(path_file1, path_file2)
     if f1_extension == f2_extension == 'docx':
         try:
-            compare_docx(path_file1, path_file2, min_words)
-            sub = compare_txt(path_file1, path_file2, min_words)
+            compare_docx(shoter_file, longer_file, min_words)
+            subs = compare_txt(shoter_file, longer_file, min_words)
         except ValueError as e:
             info_label.config(text=f'{e}')
             return
     else:
         try:
-            sub = compare_txt(path_file1, path_file2, min_words)
+            subs = compare_txt(shoter_file, longer_file, min_words)
         except ValueError as e:
             info_label.config(text=f'{e}')
             return
-
+    output = make_output(shoter_file, longer_file, subs)
     field.delete(1.0, END)
-    field.insert(INSERT, sub)
+    field.insert(INSERT, output)
     progress_stop(pb)
 
 
