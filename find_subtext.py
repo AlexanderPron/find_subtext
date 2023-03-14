@@ -78,10 +78,6 @@ def make_output(path_file1: str, path_file2: str, subs: list[Subtext]) -> str:
     return output
 
 
-def check_file(path_file1, path_file2):
-    pass
-
-
 def find_subtext(
     path_file1: str,
     path_file2: str,
@@ -119,21 +115,20 @@ def find_subtext(
         info_label.config(text=f'{e}')
         return
     threading.Thread(target=lambda: progress_start(pb)).start()
-    shoter_file, longer_file = check_file(path_file1, path_file2)
     if f1_extension == f2_extension == 'docx':
         try:
-            compare_docx(shoter_file, longer_file, min_words)
-            subs = compare_txt(shoter_file, longer_file, min_words)
+            compare_docx(path_file1, path_file2, min_words)
+            subs = compare_txt(path_file1, path_file2, min_words)
         except ValueError as e:
             info_label.config(text=f'{e}')
             return
     else:
         try:
-            subs = compare_txt(shoter_file, longer_file, min_words)
+            subs = compare_txt(path_file1, path_file2, min_words)
         except ValueError as e:
             info_label.config(text=f'{e}')
             return
-    output = make_output(shoter_file, longer_file, subs)
+    output = make_output(path_file1, path_file2, subs)
     field.delete(1.0, END)
     field.insert(INSERT, output)
     progress_stop(pb)

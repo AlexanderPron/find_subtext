@@ -192,7 +192,7 @@ def ext_extractWords(s: str, alphabet) -> list[WordData]:
     return arr
 
 
-def compare_txt(path_file1: str, path_file2: str, min_words: int) -> list[Subtext]:
+def get_files_data(path_file1: str, path_file2: str) -> dict:
     try:
         txt1 = get_text_from_file(path_file1)
         txt2 = get_text_from_file(path_file2)
@@ -203,36 +203,65 @@ def compare_txt(path_file1: str, path_file2: str, min_words: int) -> list[Subtex
     words2 = extractWords(txt2, alphabet=eng_rus_alphabet)
     ext_words1 = ext_extractWords(txt1, alphabet=eng_rus_alphabet)
     ext_words2 = ext_extractWords(txt2, alphabet=eng_rus_alphabet)
-    sub = ''
+
     if len(words1) <= len(words2):
-        try:
-            subtext_bigrams = compareTwoTexts(txt1, txt2)
-        except ValueError as e:
-            return e
-        ext_words = ext_words1
-        tmp = ext_words2
-        txt = txt1
-        # file_name1 = path_file1.split('\\')[-1]
-        # file_name2 = path_file2.split('\\')[-1]
+        rezult_dict = {
+            'short_file': path_file1,
+            'short_file_text': txt1,
+            'short_file_words': words1,
+            'short_file_ext_words': ext_words1,
+            'long_file': path_file2,
+            'long_file_text': txt2,
+            'long_file_words': words2,
+            'long_file_ext_words': ext_words2,
+            # 'file1_ext_words': ext_words1,
+            # 'file2_ext_words': ext_words2,
+        }
     else:
-        subtext_bigrams = compareTwoTexts(txt2, txt1)
-        ext_words = ext_words2
-        tmp = ext_words1
-        txt = txt2
-        # file_name1 = path_file2.split('\\')[-1]
-        # file_name2 = path_file1.split('\\')[-1]
+        rezult_dict = {
+            'short_file': path_file2,
+            'short_file_text': txt2,
+            'short_file_words': words2,
+            'short_file_ext_words': ext_words2,
+            'long_file': path_file1,
+            'long_file_text': txt1,
+            'long_file_words': words1,
+            'long_file_ext_words': ext_words1,
+            # 'file1_ext_words': ext_words1,
+            # 'file2_ext_words': ext_words2,
+        }
+    return rezult_dict
+
+
+def compare_txt(path_file1: str, path_file2: str, min_words: int) -> list[Subtext]:
+    files_data = get_files_data(path_file1, path_file2)
+    sub = ''
+    try:
+        subtext_bigrams = compareTwoTexts(files_data['short_file_text'], files_data['long_file_text'])
+    except ValueError as e:
+        return e
     subs = []
     for subtext in subtext_bigrams:
         if len(subtext) >= min_words - 1:
-            line_n2 = tmp[subtext[0][1]].line_num
-            line_n1 = ext_words[subtext[0][0]].line_num
-            start_pos = ext_words[subtext[0][0]].first_symbol_pos
-            end_pos = ext_words[subtext[-1][0] + 1].first_symbol_pos + len(ext_words[subtext[-1][0] + 1].word)
-            el = txt[start_pos: end_pos]
-            sub = Subtext(
-                quote=el,
-                linenum_file_1=line_n1,
-                linenum_file_2=line_n2,
-            )
+            line_num_short_file = files_data['short_file_ext_words'][subtext[0][0]].line_num
+            line_num_long_file = files_data['long_file_ext_words'][subtext[0][1]].line_num
+            start_pos = files_data['short_file_ext_words'][subtext[0][0]].first_symbol_pos
+            first_symbol_pos = files_data['short_file_ext_words'][subtext[-1][0] + 1].first_symbol_pos
+            len_subtext = len(files_data['short_file_ext_words'][subtext[-1][0] + 1].word)
+            end_pos = first_symbol_pos + len_subtext
+            el = files_data['short_file_text'][start_pos: end_pos]
+            if files_data['short_file'] == path_file1:
+                sub = Subtext(
+                    quote=el,
+                    linenum_file_1=line_num_short_file,
+                    linenum_file_2=line_num_long_file,
+                )
+            else:
+                sub = Subtext(
+                    quote=el,
+                    linenum_file_1=line_num_long_file,
+                    linenum_file_2=line_num_short_file,
+                )
             subs.append(sub)
+    files_data.clear()
     return subs
