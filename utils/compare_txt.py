@@ -214,8 +214,6 @@ def get_files_data(path_file1: str, path_file2: str) -> dict:
             'long_file_text': txt2,
             'long_file_words': words2,
             'long_file_ext_words': ext_words2,
-            # 'file1_ext_words': ext_words1,
-            # 'file2_ext_words': ext_words2,
         }
     else:
         rezult_dict = {
@@ -227,8 +225,6 @@ def get_files_data(path_file1: str, path_file2: str) -> dict:
             'long_file_text': txt1,
             'long_file_words': words1,
             'long_file_ext_words': ext_words1,
-            # 'file1_ext_words': ext_words1,
-            # 'file2_ext_words': ext_words2,
         }
     return rezult_dict
 
