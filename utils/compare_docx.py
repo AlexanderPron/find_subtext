@@ -1,8 +1,11 @@
+import os
+
 from utils.dataObjects import DocxWordData
 from utils.constants import (
     russianAlphabet,
     englishAlphbet,
     digits,
+    BASE_DIR,
 )
 from utils.isolate_run import isolate_run
 from utils.compare_txt import compareTwoTexts
@@ -10,6 +13,7 @@ from utils.compare_txt import compareTwoTexts
 from docx import Document
 from docx.text.run import Run
 from docx.enum.text import WD_COLOR_INDEX
+import datetime
 
 
 def extract_words_from_docx(document: Document, alphabet) -> list[DocxWordData]:
@@ -113,6 +117,9 @@ def compare_two_docx(docx_words1: list[DocxWordData], docx_words2: list[DocxWord
 
 
 def compare_docx(path_file1, path_file2, min_words):
+    timefolder = datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")
+    res_folder = os.path.join(BASE_DIR, 'results', timefolder)
+    os.makedirs(res_folder, exist_ok=True)
     alphabet = set.union(russianAlphabet, englishAlphbet, digits)
     f = open(path_file1, 'rb')
     document1 = Document(f)
@@ -150,10 +157,10 @@ def compare_docx(path_file1, path_file2, min_words):
         runs = make_runs_from_words(document, words[sub[0]], words[sub[1] + 1])
         for run in runs:
             color_subtext(run)
-    document.save(f'colored_{file_name}')
+    document.save(f'{res_folder}/colored_{file_name}')
 
     for sub in docx_first_last_words2:
         runs = make_runs_from_words(temp_doc, temp_words[sub[0]], temp_words[sub[1] + 1])
         for run in runs:
             color_subtext(run)
-    temp_doc.save(f'colored_{temp_file_name}')
+    temp_doc.save(f'{res_folder}/colored_{temp_file_name}')

@@ -2,7 +2,6 @@ import io
 import os
 import threading
 from datetime import datetime as dt
-import locale
 
 from utils.validators import (
     file_validate,
@@ -12,6 +11,7 @@ from utils.constants import (
     russianAlphabet,
     englishAlphbet,
     digits,
+    BASE_DIR,
 )
 from utils.compare_docx import compare_docx
 from utils.compare_txt import compare_txt
@@ -26,7 +26,17 @@ from babel.dates import format_datetime
 
 
 eng_rus_alphabet = set.union(russianAlphabet, englishAlphbet, digits)
-# locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
+
+log_folder = os.path.join(BASE_DIR, 'logs')
+os.makedirs(log_folder, exist_ok=True)
+
+log_file = os.path.join(log_folder, 'find_subtext.log')
+if not os.path.isfile(log_file):
+    f = open(log_file, "w")
+    f.close
+
+result_folder = os.path.join(BASE_DIR, 'results')
+os.makedirs(result_folder, exist_ok=True)
 
 
 def select_file(path_file: Entry):
