@@ -171,7 +171,7 @@ def ext_extractWords(s: str, alphabet) -> list[WordData]:
                 if len(temp) > 0:
                     word = WordData(
                         word=''.join(temp),
-                        first_symbol_pos=char_pos - len(temp),
+                        first_symbol_pos=char_pos - len(temp) - 1,
                         line_num=curr_line,
                         wnumber=word_number
                     )
@@ -245,7 +245,7 @@ def compare_txt(path_file1: str, path_file2: str, min_words: int) -> list[Subtex
             first_symbol_pos = files_data['short_file_ext_words'][subtext[-1][0] + 1].first_symbol_pos
             len_subtext = len(files_data['short_file_ext_words'][subtext[-1][0] + 1].word)
             end_pos = first_symbol_pos + len_subtext
-            el = files_data['short_file_text'][start_pos: end_pos]
+            el = files_data['short_file_text'][start_pos + 1: end_pos + 1]
             if files_data['short_file'] == path_file1:
                 sub = Subtext(
                     quote=el,

@@ -157,10 +157,13 @@ def compare_docx(path_file1, path_file2, min_words):
         runs = make_runs_from_words(document, words[sub[0]], words[sub[1] + 1])
         for run in runs:
             color_subtext(run)
-    document.save(f'{res_folder}/colored_{file_name}')
+    file1_pathname = os.path.join(res_folder, f'colored_{file_name}')
+    document.save(file1_pathname)
 
     for sub in docx_first_last_words2:
         runs = make_runs_from_words(temp_doc, temp_words[sub[0]], temp_words[sub[1] + 1])
         for run in runs:
             color_subtext(run)
-    temp_doc.save(f'{res_folder}/colored_{temp_file_name}')
+    file2_pathname = os.path.join(res_folder, f'colored_{temp_file_name}')
+    temp_doc.save(file2_pathname)
+    return (file1_pathname, file2_pathname)

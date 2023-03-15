@@ -2,6 +2,7 @@ import io
 import os
 import threading
 from datetime import datetime as dt
+from pathlib import Path
 
 from utils.validators import (
     file_validate,
@@ -60,8 +61,10 @@ def save_to_file(field: tk.Text):
             f.write(f'{field.get(1.0, END)}')
 
 
-def clear_field(field: tk.Text):
+def clear_field(field: tk.Text, label_result: tk.Label, open_folder_btn: tk.Button):
     field.delete(1.0, END)
+    label_result.grid_remove()
+    open_folder_btn.grid_remove()
 
 
 def progress_start(pb: ttk.Progressbar):
@@ -71,7 +74,12 @@ def progress_start(pb: ttk.Progressbar):
 
 def progress_stop(pb: ttk.Progressbar):
     pb.stop()
-    pb.grid_forget()
+    pb.grid_remove()
+
+
+def open_folder(label_result: tk.Label):
+    path_folder = Path(label_result.cget('text').split('\n')[1]).resolve().parent
+    os.system(f'explorer {path_folder}')
 
 
 def make_output(path_file1: str, path_file2: str, subs: list[Subtext]) -> str:
@@ -95,6 +103,8 @@ def find_subtext(
     field: tk.Text,
     info_label: tk.Label,
     pb: ttk.Progressbar,
+    label_result: tk.Label,
+    open_folder_btn: tk.Button,
 ):
     info_label.config(text='')
     if not (path_file1 and path_file2):
@@ -127,25 +137,34 @@ def find_subtext(
     threading.Thread(target=lambda: progress_start(pb)).start()
     if f1_extension == f2_extension == 'docx':
         try:
-            compare_docx(path_file1, path_file2, min_words)
+            created_files = compare_docx(path_file1, path_file2, min_words)
             subs = compare_txt(path_file1, path_file2, min_words)
         except ValueError as e:
+            progress_stop(pb)
             info_label.config(text=f'{e}')
             return
     else:
         try:
             subs = compare_txt(path_file1, path_file2, min_words)
         except ValueError as e:
+            progress_stop(pb)
             info_label.config(text=f'{e}')
             return
     output = make_output(path_file1, path_file2, subs)
     field.delete(1.0, END)
     field.insert(INSERT, output)
     progress_stop(pb)
+    if created_files:
+        label_result.config(
+            text=f'Результаты сохранены в файлах:\n\
+{created_files[0]}\n{created_files[1]}'
+        )
+        label_result.grid()
+        open_folder_btn.grid()
 
 
 def main():
-    app_version = 'v.1.2'
+    app_version = 'v.1.3alfa'
     main_window = tk.Tk()
     main_window.title(f"Поиск совпадающих подтекстов в двух текстах {app_version}")
     main_window.geometry("1050x500")
@@ -181,6 +200,23 @@ def main():
     info_label = Label(frame1, text='', anchor=W, fg='red', wraplength=200)
     info_label.grid(column=0, row=6, padx=5, pady=5, sticky=EW)
 
+    pb = ttk.Progressbar(
+        frame4,
+        orient='horizontal',
+        mode='indeterminate',
+        length=200,
+    )
+    pb.grid(column=4, row=0, padx=5, pady=5)
+    pb.grid_remove()
+
+    label_result = Label(frame4, text='', anchor=E)
+    label_result.grid(column=4, row=0, padx=5, pady=5, sticky=NS, )
+    label_result.grid_remove()
+
+    open_folder_btn = Button(frame4, text='Открыть папку...', command=lambda: open_folder(label_result))
+    open_folder_btn.grid(column=5, row=0, padx=5, pady=5)
+    open_folder_btn.grid_remove()
+
     SVBar = tk.Scrollbar(frame2)
     SVBar.pack(side=tk.RIGHT, fill="y")
     SHBar = tk.Scrollbar(frame2, orient=tk.HORIZONTAL)
@@ -205,6 +241,8 @@ def main():
                 TBox,
                 info_label,
                 pb,
+                label_result,
+                open_folder_btn,
             )
         ).start()
     )
@@ -216,7 +254,7 @@ def main():
     clear_btn = Button(
         frame3,
         text='Очистить',
-        command=lambda: clear_field(TBox)
+        command=lambda: clear_field(TBox, label_result, open_folder_btn)
     )
     quit_app_btn = Button(
         frame3,
@@ -227,14 +265,6 @@ def main():
     save_to_file_btn.grid(column=1, row=0, padx=5, pady=5)
     clear_btn.grid(column=2, row=0, padx=5, pady=5)
     quit_app_btn.grid(column=3, row=0, padx=5, pady=5)
-    pb = ttk.Progressbar(
-        frame4,
-        orient='horizontal',
-        mode='indeterminate',
-        length=200,
-    )
-    pb.grid(column=4, row=0, padx=5, pady=5)
-    pb.grid_remove()
 
     main_window.mainloop()
 
