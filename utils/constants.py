@@ -21,6 +21,6 @@ digits = {
 
 if getattr(sys, "frozen", False):
     (filepath, tempfilename) = os.path.split(sys.argv[0])
-    BASE_DIR = Path(filepath).resolve().parent
+    BASE_DIR = Path(filepath).resolve()
 else:
     BASE_DIR = Path(os.path.abspath(os.path.dirname(__file__))).resolve().parent

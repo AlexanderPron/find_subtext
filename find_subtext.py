@@ -168,10 +168,10 @@ def find_subtext(
 
 
 def main():
-    app_version = 'v.1.3alfa'
+    app_version = 'v.1.3'
     main_window = tk.Tk()
     main_window.title(f"Поиск совпадающих подтекстов в двух текстах {app_version}")
-    main_window.geometry("1050x500")
+    main_window.minsize(width=1150, height=500)
     frame1 = tk.LabelFrame(main_window, text='Входные данные')
     frame1.grid(column=0, row=0, padx=5, pady=5, sticky=NSEW)
     frame2 = tk.LabelFrame(main_window, text='Выходные данные')
@@ -198,7 +198,7 @@ def main():
     label_f2 = Label(frame1, text='Минимальное количество слов совпадений', anchor=W)
     label_f2.grid(column=0, row=4, padx=5, pady=5, sticky=EW)
     min_words_field = Entry(frame1, width=5)
-    min_words_field.insert(0, '5')
+    min_words_field.insert(0, '10')
     min_words_field.grid(column=0, row=5, padx=5, pady=5, sticky=W)
 
     info_label = Label(frame1, text='', anchor=W, fg='red', wraplength=200)
@@ -210,11 +210,11 @@ def main():
         mode='indeterminate',
         length=200,
     )
-    pb.grid(column=4, row=0, padx=5, pady=5)
+    pb.grid(column=4, row=0, padx=5, pady=5, sticky=W)
     pb.grid_remove()
 
-    label_result = Label(frame4, text='', anchor=E)
-    label_result.grid(column=4, row=0, padx=5, pady=5, sticky=NS, )
+    label_result = Label(frame4, text='', anchor=W)
+    label_result.grid(column=4, row=0, padx=5, pady=5, sticky=NSEW)
     label_result.grid_remove()
 
     open_folder_btn = Button(frame4, text='Открыть папку...', command=lambda: open_folder(label_result))
@@ -229,9 +229,9 @@ def main():
         frame2,
         yscrollcommand=SVBar.set,
         xscrollcommand=SHBar.set,
-        # wrap="none"
+        # wrap="none",
     )
-    TBox.pack(expand=0, fill=tk.BOTH)
+    TBox.pack(expand=1, fill=tk.BOTH)
     SHBar.config(command=TBox.xview)
     SVBar.config(command=TBox.yview)
     start_btn = Button(
