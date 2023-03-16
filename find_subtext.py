@@ -67,7 +67,9 @@ def clear_field(field: tk.Text, label_result: tk.Label, open_folder_btn: tk.Butt
     open_folder_btn.grid_remove()
 
 
-def progress_start(pb: ttk.Progressbar):
+def progress_start(pb: ttk.Progressbar, label_result: tk.Label, open_folder_btn: tk.Button):
+    label_result.grid_remove()
+    open_folder_btn.grid_remove()
     pb.grid()
     pb.start(25)
 
@@ -134,7 +136,9 @@ def find_subtext(
     except ValueError as e:
         info_label.config(text=f'{e}')
         return
-    threading.Thread(target=lambda: progress_start(pb)).start()
+    pb.grid()
+    threading.Thread(target=lambda: progress_start(pb, label_result, open_folder_btn)).start()
+    created_files = ()
     if f1_extension == f2_extension == 'docx':
         try:
             created_files = compare_docx(path_file1, path_file2, min_words)
