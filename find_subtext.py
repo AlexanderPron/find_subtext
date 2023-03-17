@@ -3,6 +3,7 @@ import os
 import threading
 from datetime import datetime as dt
 from pathlib import Path
+import logging
 
 from utils.validators import (
     file_validate,
@@ -22,7 +23,6 @@ from tkinter import *
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog as fd
-from tkinter.scrolledtext import ScrolledText
 
 from babel.dates import format_datetime
 
@@ -39,6 +39,10 @@ if not os.path.isfile(log_file):
 
 result_folder = os.path.join(BASE_DIR, 'results')
 os.makedirs(result_folder, exist_ok=True)
+
+logging.basicConfig(filename=log_file, format='%(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 def select_file(path_file: Entry):
@@ -280,4 +284,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        logger.exception(msg=e, exc_info=True)

@@ -231,6 +231,7 @@ def get_files_data(path_file1: str, path_file2: str) -> dict:
 
 def compare_txt(path_file1: str, path_file2: str, min_words: int) -> list[Subtext]:
     files_data = get_files_data(path_file1, path_file2)
+    raise FileExistsError('no file')
     sub = ''
     try:
         subtext_bigrams = compareTwoTexts(files_data['short_file_text'], files_data['long_file_text'])
