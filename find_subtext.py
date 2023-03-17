@@ -22,6 +22,7 @@ from tkinter import *
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog as fd
+from tkinter.scrolledtext import ScrolledText
 
 from babel.dates import format_datetime
 
@@ -171,7 +172,8 @@ def main():
     app_version = 'v.1.3'
     main_window = tk.Tk()
     main_window.title(f"Поиск совпадающих подтекстов в двух текстах {app_version}")
-    main_window.minsize(width=1150, height=500)
+    main_window.minsize(width=1150, height=600)
+    main_window.maxsize(width=1150, height=600)
     frame1 = tk.LabelFrame(main_window, text='Входные данные')
     frame1.grid(column=0, row=0, padx=5, pady=5, sticky=NSEW)
     frame2 = tk.LabelFrame(main_window, text='Выходные данные')
@@ -213,7 +215,7 @@ def main():
     pb.grid(column=4, row=0, padx=5, pady=5, sticky=W)
     pb.grid_remove()
 
-    label_result = Label(frame4, text='', anchor=W)
+    label_result = Label(frame4, text='', anchor=E, justify=LEFT)
     label_result.grid(column=4, row=0, padx=5, pady=5, sticky=NSEW)
     label_result.grid_remove()
 
@@ -223,17 +225,21 @@ def main():
 
     SVBar = tk.Scrollbar(frame2)
     SVBar.pack(side=tk.RIGHT, fill="y")
-    SHBar = tk.Scrollbar(frame2, orient=tk.HORIZONTAL)
-    SHBar.pack(side=tk.BOTTOM, fill="x")
+    # SHBar = tk.Scrollbar(frame2, orient=tk.HORIZONTAL)
+    # SHBar.pack(side=tk.BOTTOM, fill="x")
     TBox = tk.Text(
         frame2,
         yscrollcommand=SVBar.set,
-        xscrollcommand=SHBar.set,
-        # wrap="none",
+        # xscrollcommand=SHBar.set,
+        width=90,
+        height=30,
+        wrap="word",
     )
     TBox.pack(expand=1, fill=tk.BOTH)
-    SHBar.config(command=TBox.xview)
+    # SHBar.config(command=TBox.xview)
     SVBar.config(command=TBox.yview)
+    # TBox = ScrolledText(frame2, width=100, height=20, wrap)
+    # TBox.pack(fill=BOTH, side=LEFT, expand=True)
     start_btn = Button(
         frame3,
         text='Старт',
