@@ -24,3 +24,13 @@ if getattr(sys, "frozen", False):
     BASE_DIR = Path(filepath).resolve()
 else:
     BASE_DIR = Path(os.path.abspath(os.path.dirname(__file__))).resolve().parent
+
+log_folder = os.path.join(BASE_DIR, 'logs')
+os.makedirs(log_folder, exist_ok=True)
+
+log_file = os.path.join(log_folder, 'find_subtext.log')
+if not os.path.isfile(log_file):
+    f = open(log_file, "w")
+    f.close
+
+result_folder = os.path.join(BASE_DIR, 'results')

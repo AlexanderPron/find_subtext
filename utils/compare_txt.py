@@ -2,18 +2,27 @@ from utils.OrderedSet import OrderedSet
 import docxpy
 import fitz
 import io
+import logging
 
 from utils.constants import (
     russianAlphabet,
     englishAlphbet,
     digits,
+    log_file,
 )
 from utils.dataObjects import (
     WordData,
     Subtext,
 )
+from utils.exceptions import (
+    Info_exception,
+)
 
 eng_rus_alphabet = set.union(russianAlphabet, englishAlphbet, digits)
+
+logging.basicConfig(filename=log_file, format='%(asctime)s :: %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 def docx_to_txt(file_pathname):
@@ -44,7 +53,7 @@ def get_text_from_file(file_pathname: str):
                     return txt
             except UnicodeDecodeError:
                 continue
-        raise ValueError(f'Не подходящая кодировка файла {file_pathname.split("//")[-1]}\nПопробуйте \
+        raise Info_exception(f'Не подходящая кодировка файла {file_pathname.split("//")[-1]}\nПопробуйте \
 перекодировать его в utf-8 или windows-1251')
 
 
@@ -115,7 +124,7 @@ def getCommonNGrams(ngramDic1, ngramDic2):
 
 def extractCommonPassages(commonNGrams):
     if not commonNGrams:
-        raise ValueError('Нет биграмм или неверная кодировка файла')
+        raise Info_exception('Нет биграмм. Возможно пустой файл или неверная кодировка файла')
     commonPassages = []
     temp = []
     while commonNGrams:
@@ -196,7 +205,7 @@ def get_files_data(path_file1: str, path_file2: str) -> dict:
     try:
         txt1 = get_text_from_file(path_file1)
         txt2 = get_text_from_file(path_file2)
-    except ValueError as e:
+    except Info_exception as e:
         return e
 
     words1 = extractWords(txt1, alphabet=eng_rus_alphabet)
@@ -230,35 +239,37 @@ def get_files_data(path_file1: str, path_file2: str) -> dict:
 
 
 def compare_txt(path_file1: str, path_file2: str, min_words: int) -> list[Subtext]:
-    files_data = get_files_data(path_file1, path_file2)
-    raise FileExistsError('no file')
-    sub = ''
-    try:
-        subtext_bigrams = compareTwoTexts(files_data['short_file_text'], files_data['long_file_text'])
-    except ValueError as e:
-        return e
     subs = []
-    for subtext in subtext_bigrams:
-        if len(subtext) >= min_words - 1:
-            line_num_short_file = files_data['short_file_ext_words'][subtext[0][0]].line_num
-            line_num_long_file = files_data['long_file_ext_words'][subtext[0][1]].line_num
-            start_pos = files_data['short_file_ext_words'][subtext[0][0]].first_symbol_pos
-            first_symbol_pos = files_data['short_file_ext_words'][subtext[-1][0] + 1].first_symbol_pos
-            len_subtext = len(files_data['short_file_ext_words'][subtext[-1][0] + 1].word)
-            end_pos = first_symbol_pos + len_subtext
-            el = files_data['short_file_text'][start_pos + 1: end_pos + 1]
-            if files_data['short_file'] == path_file1:
-                sub = Subtext(
-                    quote=el,
-                    linenum_file_1=line_num_short_file,
-                    linenum_file_2=line_num_long_file,
-                )
-            else:
-                sub = Subtext(
-                    quote=el,
-                    linenum_file_1=line_num_long_file,
-                    linenum_file_2=line_num_short_file,
-                )
-            subs.append(sub)
-    files_data.clear()
-    return subs
+    try:
+        files_data = get_files_data(path_file1, path_file2)
+        sub = ''
+        subtext_bigrams = compareTwoTexts(files_data['short_file_text'], files_data['long_file_text'])
+        for subtext in subtext_bigrams:
+            if len(subtext) >= min_words - 1:
+                line_num_short_file = files_data['short_file_ext_words'][subtext[0][0]].line_num
+                line_num_long_file = files_data['long_file_ext_words'][subtext[0][1]].line_num
+                start_pos = files_data['short_file_ext_words'][subtext[0][0]].first_symbol_pos
+                first_symbol_pos = files_data['short_file_ext_words'][subtext[-1][0] + 1].first_symbol_pos
+                len_subtext = len(files_data['short_file_ext_words'][subtext[-1][0] + 1].word)
+                end_pos = first_symbol_pos + len_subtext
+                el = files_data['short_file_text'][start_pos + 1: end_pos + 1]
+                if files_data['short_file'] == path_file1:
+                    sub = Subtext(
+                        quote=el,
+                        linenum_file_1=line_num_short_file,
+                        linenum_file_2=line_num_long_file,
+                    )
+                else:
+                    sub = Subtext(
+                        quote=el,
+                        linenum_file_1=line_num_long_file,
+                        linenum_file_2=line_num_short_file,
+                    )
+                subs.append(sub)
+        files_data.clear()
+        return subs
+    except Info_exception as e:
+        raise e
+    except Exception as e:
+        logger.exception(msg=e, exc_info=True)
+        raise Info_exception('Что-то пошло не так. Смотри лог файл')

@@ -13,7 +13,11 @@ from utils.constants import (
     russianAlphabet,
     englishAlphbet,
     digits,
-    BASE_DIR,
+    log_file,
+    result_folder,
+)
+from utils.exceptions import (
+    Info_exception,
 )
 from utils.compare_docx import compare_docx
 from utils.compare_txt import compare_txt
@@ -29,18 +33,9 @@ from babel.dates import format_datetime
 
 eng_rus_alphabet = set.union(russianAlphabet, englishAlphbet, digits)
 
-log_folder = os.path.join(BASE_DIR, 'logs')
-os.makedirs(log_folder, exist_ok=True)
-
-log_file = os.path.join(log_folder, 'find_subtext.log')
-if not os.path.isfile(log_file):
-    f = open(log_file, "w")
-    f.close
-
-result_folder = os.path.join(BASE_DIR, 'results')
 os.makedirs(result_folder, exist_ok=True)
 
-logging.basicConfig(filename=log_file, format='%(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename=log_file, format='%(asctime)s :: %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
@@ -121,24 +116,9 @@ def find_subtext(
     path_file2 = os.path.abspath(path_file2)
     try:
         f1_extension = file_validate(path_file1, ['txt', 'pdf', 'docx'])
-    except TypeError as e:
-        info_label.config(text=f'{e}')
-        return
-    except FileExistsError as e:
-        info_label.config(text=f'{e}')
-        return
-    try:
         f2_extension = file_validate(path_file2, ['txt', 'pdf', 'docx'])
-    except TypeError as e:
-        info_label.config(text=f'{e}')
-        return
-    except FileExistsError as e:
-        info_label.config(text=f'{e}')
-        return
-    try:
-        number_validate(min_words)
-        min_words = int(min_words)
-    except ValueError as e:
+        min_words = number_validate(min_words)
+    except Info_exception as e:
         info_label.config(text=f'{e}')
         return
     pb.grid()
@@ -148,14 +128,14 @@ def find_subtext(
         try:
             created_files = compare_docx(path_file1, path_file2, min_words)
             subs = compare_txt(path_file1, path_file2, min_words)
-        except ValueError as e:
+        except Info_exception as e:
             progress_stop(pb)
             info_label.config(text=f'{e}')
             return
     else:
         try:
             subs = compare_txt(path_file1, path_file2, min_words)
-        except ValueError as e:
+        except Info_exception as e:
             progress_stop(pb)
             info_label.config(text=f'{e}')
             return
@@ -173,12 +153,16 @@ def find_subtext(
 
 
 def main():
-    app_version = 'v.1.3'
+    app_version = 'v.1.3 Release'
     main_window = tk.Tk()
     main_window.title(f"Поиск совпадающих подтекстов в двух текстах {app_version}")
-    main_window.minsize(width=1150, height=600)
-    main_window.maxsize(width=1150, height=600)
-    frame1 = tk.LabelFrame(main_window, text='Входные данные')
+    main_window.geometry('1150x460')
+    main_window.minsize(width=500, height=460)
+    main_window.columnconfigure(0, weight=0)
+    main_window.columnconfigure(1, weight=2)
+    main_window.rowconfigure(0, weight=1)
+    main_window.rowconfigure(1, weight=0)
+    frame1 = tk.LabelFrame(main_window, text='Входные данные', width=400)
     frame1.grid(column=0, row=0, padx=5, pady=5, sticky=NSEW)
     frame2 = tk.LabelFrame(main_window, text='Выходные данные')
     frame2.grid(column=1, row=0, padx=5, pady=5, sticky=NSEW)
@@ -229,21 +213,13 @@ def main():
 
     SVBar = tk.Scrollbar(frame2)
     SVBar.pack(side=tk.RIGHT, fill="y")
-    # SHBar = tk.Scrollbar(frame2, orient=tk.HORIZONTAL)
-    # SHBar.pack(side=tk.BOTTOM, fill="x")
     TBox = tk.Text(
         frame2,
         yscrollcommand=SVBar.set,
-        # xscrollcommand=SHBar.set,
-        width=90,
-        height=30,
         wrap="word",
     )
     TBox.pack(expand=1, fill=tk.BOTH)
-    # SHBar.config(command=TBox.xview)
     SVBar.config(command=TBox.yview)
-    # TBox = ScrolledText(frame2, width=100, height=20, wrap)
-    # TBox.pack(fill=BOTH, side=LEFT, expand=True)
     start_btn = Button(
         frame3,
         text='Старт',

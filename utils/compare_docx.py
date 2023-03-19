@@ -1,4 +1,5 @@
 import os
+import logging
 
 from utils.dataObjects import DocxWordData
 from utils.constants import (
@@ -6,14 +7,22 @@ from utils.constants import (
     englishAlphbet,
     digits,
     BASE_DIR,
+    log_file,
 )
 from utils.isolate_run import isolate_run
 from utils.compare_txt import compareTwoTexts
-
+from utils.exceptions import (
+    Info_exception,
+)
 from docx import Document
 from docx.text.run import Run
 from docx.enum.text import WD_COLOR_INDEX
 import datetime
+
+
+logging.basicConfig(filename=log_file, format='%(asctime)s :: %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 def extract_words_from_docx(document: Document, alphabet) -> list[DocxWordData]:
@@ -99,7 +108,8 @@ def make_runs_from_words(document: Document, start_word: DocxWordData, end_word:
             runs.append(last_run)
             return runs
     else:
-        raise ValueError('Последнее слово находится до первого')
+        raise ValueError('Не корректное использование функции make_runs_from_words(*args).\
+Последнее слово находится до первого')
 
 
 def docx_words_to_txt(docx_words: list[DocxWordData]):
@@ -117,53 +127,59 @@ def compare_two_docx(docx_words1: list[DocxWordData], docx_words2: list[DocxWord
 
 
 def compare_docx(path_file1, path_file2, min_words):
-    timefolder = datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")
-    res_folder = os.path.join(BASE_DIR, 'results', timefolder)
-    os.makedirs(res_folder, exist_ok=True)
-    alphabet = set.union(russianAlphabet, englishAlphbet, digits)
-    f = open(path_file1, 'rb')
-    document1 = Document(f)
-    f.close()
-    f = open(path_file2, 'rb')
-    document2 = Document(f)
-    f.close()
-    file_name1 = path_file1.split('\\')[-1]
-    file_name2 = path_file2.split('\\')[-1]
-    docx_first_last_words = []
-    docx_first_last_words2 = []
-    words1 = extract_words_from_docx(document1, alphabet)
-    words2 = extract_words_from_docx(document2, alphabet)
-    if len(words1) <= len(words2):
-        document = document1
-        words = words1
-        temp_doc = document2
-        temp_words = words2
-        file_name = file_name1
-        temp_file_name = file_name2
-        subtexts = compare_two_docx(words, words2, alphabet)
-    else:
-        document = document2
-        words = words2
-        temp_doc = document1
-        temp_words = words1
-        file_name = file_name2
-        temp_file_name = file_name1
-        subtexts = compare_two_docx(words, words1, alphabet)
-    for subtext in subtexts:
-        if len(subtext) >= min_words - 1:
-            docx_first_last_words.append((subtext[0][0], subtext[-1][0]))
-            docx_first_last_words2.append((subtext[0][1], subtext[-1][1]))
-    for sub in docx_first_last_words:
-        runs = make_runs_from_words(document, words[sub[0]], words[sub[1] + 1])
-        for run in runs:
-            color_subtext(run)
-    file1_pathname = os.path.join(res_folder, f'colored_{file_name}')
-    document.save(file1_pathname)
+    try:
+        timefolder = datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")
+        res_folder = os.path.join(BASE_DIR, 'results', timefolder)
+        os.makedirs(res_folder, exist_ok=True)
+        alphabet = set.union(russianAlphabet, englishAlphbet, digits)
+        f = open(path_file1, 'rb')
+        document1 = Document(f)
+        f.close()
+        f = open(path_file2, 'rb')
+        document2 = Document(f)
+        f.close()
+        file_name1 = path_file1.split('\\')[-1]
+        file_name2 = path_file2.split('\\')[-1]
+        docx_first_last_words = []
+        docx_first_last_words2 = []
+        words1 = extract_words_from_docx(document1, alphabet)
+        words2 = extract_words_from_docx(document2, alphabet)
+        if len(words1) <= len(words2):
+            document = document1
+            words = words1
+            temp_doc = document2
+            temp_words = words2
+            file_name = file_name1
+            temp_file_name = file_name2
+            subtexts = compare_two_docx(words, words2, alphabet)
+        else:
+            document = document2
+            words = words2
+            temp_doc = document1
+            temp_words = words1
+            file_name = file_name2
+            temp_file_name = file_name1
+            subtexts = compare_two_docx(words, words1, alphabet)
+        for subtext in subtexts:
+            if len(subtext) >= min_words - 1:
+                docx_first_last_words.append((subtext[0][0], subtext[-1][0]))
+                docx_first_last_words2.append((subtext[0][1], subtext[-1][1]))
+        for sub in docx_first_last_words:
+            runs = make_runs_from_words(document, words[sub[0]], words[sub[1] + 1])
+            for run in runs:
+                color_subtext(run)
+        file1_pathname = os.path.join(res_folder, f'colored_{file_name}')
+        document.save(file1_pathname)
 
-    for sub in docx_first_last_words2:
-        runs = make_runs_from_words(temp_doc, temp_words[sub[0]], temp_words[sub[1] + 1])
-        for run in runs:
-            color_subtext(run)
-    file2_pathname = os.path.join(res_folder, f'colored_{temp_file_name}')
-    temp_doc.save(file2_pathname)
-    return (file1_pathname, file2_pathname)
+        for sub in docx_first_last_words2:
+            runs = make_runs_from_words(temp_doc, temp_words[sub[0]], temp_words[sub[1] + 1])
+            for run in runs:
+                color_subtext(run)
+        file2_pathname = os.path.join(res_folder, f'colored_{temp_file_name}')
+        temp_doc.save(file2_pathname)
+        return (file1_pathname, file2_pathname)
+    except Info_exception as e:
+        raise e
+    except Exception as e:
+        logger.exception(msg=e, exc_info=True)
+        raise Info_exception('Что-то пошло не так. Смотри лог файл')
