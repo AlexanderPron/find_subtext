@@ -129,6 +129,7 @@ def find_subtext(
             created_files = compare_docx(path_file1, path_file2, min_words)
             subs = compare_txt(path_file1, path_file2, min_words)
         except Info_exception as e:
+            pb.grid_remove()
             progress_stop(pb)
             info_label.config(text=f'{e}')
             return
@@ -136,6 +137,7 @@ def find_subtext(
         try:
             subs = compare_txt(path_file1, path_file2, min_words)
         except Info_exception as e:
+            pb.grid_remove()
             progress_stop(pb)
             info_label.config(text=f'{e}')
             return
@@ -167,7 +169,7 @@ def main():
     frame2 = tk.LabelFrame(main_window, text='Выходные данные')
     frame2.grid(column=1, row=0, padx=5, pady=5, sticky=NSEW)
     frame3 = tk.Frame(main_window)
-    frame3.grid(column=0, row=1, padx=5, pady=5, sticky=NSEW)
+    frame3.grid(column=0, row=1, padx=5, pady=5, sticky=NSEW, )
     frame4 = tk.Frame(main_window)
     frame4.grid(column=1, row=1, padx=5, pady=5, sticky=NSEW)
 
@@ -200,15 +202,15 @@ def main():
         mode='indeterminate',
         length=200,
     )
-    pb.grid(column=4, row=0, padx=5, pady=5, sticky=W)
+    pb.grid(column=0, row=0, padx=5, pady=5, sticky=W)
     pb.grid_remove()
 
     label_result = Label(frame4, text='', anchor=E, justify=LEFT)
-    label_result.grid(column=4, row=0, padx=5, pady=5, sticky=NSEW)
+    label_result.grid(column=0, row=0, padx=5, pady=5, sticky=NSEW)
     label_result.grid_remove()
 
     open_folder_btn = Button(frame4, text='Открыть папку...', command=lambda: open_folder(label_result))
-    open_folder_btn.grid(column=5, row=0, padx=5, pady=5)
+    open_folder_btn.grid(column=0, row=1, padx=5, pady=5, sticky=W)
     open_folder_btn.grid_remove()
 
     SVBar = tk.Scrollbar(frame2)
@@ -251,10 +253,12 @@ def main():
         text='Выход',
         command=main_window.destroy
     )
-    start_btn.grid(column=0, row=0, padx=5, pady=5)
-    save_to_file_btn.grid(column=1, row=0, padx=5, pady=5)
-    clear_btn.grid(column=2, row=0, padx=5, pady=5)
-    quit_app_btn.grid(column=3, row=0, padx=5, pady=5)
+    empty_label = Label(frame3, text='\n\n')
+    empty_label.grid(column=0, row=1, padx=5, pady=5, sticky=NSEW)
+    start_btn.grid(column=0, row=2, padx=5, pady=5)
+    save_to_file_btn.grid(column=1, row=2, padx=5, pady=5)
+    clear_btn.grid(column=2, row=2, padx=5, pady=5)
+    quit_app_btn.grid(column=3, row=2, padx=5, pady=5)
 
     main_window.mainloop()
 
