@@ -22,6 +22,7 @@ from utils.exceptions import (
 from utils.compare_docx import compare_docx
 from utils.compare_txt import compare_txt
 from utils.dataObjects import Subtext
+from utils.docx_elements import iter_block_items
 
 from tkinter import *
 import tkinter as tk
@@ -29,6 +30,11 @@ from tkinter import ttk
 from tkinter import filedialog as fd
 
 from babel.dates import format_datetime
+
+# imorts for test()
+from docx import Document
+from docx.text.run import Run
+# ================
 
 
 eng_rus_alphabet = set.union(russianAlphabet, englishAlphbet, digits)
@@ -263,8 +269,25 @@ def main():
     main_window.mainloop()
 
 
+def test():
+    path_file1 = 'D:\develop\ОТЧЕТ_ЭНЕРДЖИНЕТ_ФИНАЛ_в_отправку_13_12_2022.docx'
+    f = open(path_file1, 'rb')
+    document1 = Document(f)
+    f.close()
+    elements = iter_block_items(document1)
+    i = 0
+    while True:
+        try:
+            print(i)
+            print(next(elements))
+            i += 1
+        except StopIteration:
+            break
+
+
 if __name__ == '__main__':
     try:
-        main()
+        # main()
+        test()
     except Exception as e:
         logger.exception(msg=e, exc_info=True)
